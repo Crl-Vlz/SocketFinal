@@ -10,4 +10,4 @@ Miguel Angel Tovar Rodriguez MikeTovarR
 
 **Server Language**: C
 
-**Client Language**: Rust
+**Client Language**: Python

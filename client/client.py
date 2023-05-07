@@ -14,12 +14,12 @@ def send_to_server(data, operation):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Conecta el cliente al servidor en la dirección y puerto especificados
-    server_address = ('172.18.2.2', 5100)
+    server_address = ('172.18.2.3', 5100)
     client_socket.connect((server_address))
 
     try:
         # Envía los valores de inicio de sesión al servidor
-        message = f"{username},{password}, {int(operation)}"
+        message = f"{username},{password}, {operation}"
         client_socket.sendall(message.encode())
 
         # Espera la respuesta del servidor

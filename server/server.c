@@ -36,6 +36,11 @@
  */
 
 /*
+ * User key file, stores all users and passwords
+ */
+FILE *user_file;
+
+/*
  * Struct for use with users
  * Stores the user info along with currently connected socket
  */
@@ -51,10 +56,10 @@ struct user
  * param sig: Signal, in this case ctrl+c
  * param *fp: User key file
  */
-void sigint_handler(int sig, FILE *fp)
+void sigint_handler(int sig)
 {
-    if (fp != NULL)
-        fclose(fp);
+    if (user_file != NULL)
+        fclose(user_file);
     exit(0);
 }
 
@@ -149,10 +154,8 @@ int manage_user_request(char *req, FILE *file)
 int main(void)
 {
     struct user user_list[MAX_USERS];
-    FILE *user_file;
 
     signal(SIGINT, (void (*)(int))sigint_handler);
-    sigint_handler(SIGINT, user_file);
 
     int nusers = 0;
     int server_fd, max_fds, activity;
@@ -209,7 +212,7 @@ int main(void)
             if (recv(new_socket, buffer, MAX_LENGTH, 0) < 0)
             {
                 perror("Error reading data");
-                close(new_scoket);
+                close(new_socket);
             }
             if (manage_user_request(buffer, user_file) == SUCCESS)
             {

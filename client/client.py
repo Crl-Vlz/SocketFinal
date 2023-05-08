@@ -14,12 +14,12 @@ def send_to_server(data, operation):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Conecta el cliente al servidor en la dirección y puerto especificados
-    server_address = ('172.18.2.3', 5100)
+    server_address = ('172.18.2.3', 5000)
     client_socket.connect((server_address))
 
     try:
         # Envía los valores de inicio de sesión al servidor
-        message = f"{username},{password}, {operation}"
+        message = f"{username}:{password}:{operation}"
         client_socket.sendall(message.encode())
 
         # Espera la respuesta del servidor
@@ -30,6 +30,8 @@ def send_to_server(data, operation):
         # Cierra la conexión
         client_socket.close()
 
+#------------------------------------------------------------------------------------------------------------------------------------------
+
 def validate(user, user_password):
     # Obtiene los valores ingresados por el usuario
     username = user.get()
@@ -37,16 +39,13 @@ def validate(user, user_password):
 
     # Verifica si los campos están vacíos
     if not username or not password:
-        messagebox.showwarning("Error", "Por favor, completa todos los campos.")
+        messagebox.showwarning("Error", "¨Please, fill all the fields")
         return
     else: 
         entered_data = [username, password]
         return entered_data
 
-#------------------------------------------------------------------------------------------------------------------------------------------
-
 def create_action_window(btn_function):
-    main_window.destroy()
     # Crea la nueva ventana
     window = tk.Tk()
     window.geometry("300x150")
@@ -58,6 +57,7 @@ def create_action_window(btn_function):
     label_password = tk.Label(window, text="Password:")
     entry_password = tk.Entry(window, show="*")
     button_action = tk.Button(window, text=btn_function, command = lambda: send_to_server(validate(entry_username, entry_password), btn_function))
+    button_main = tk.Button(window, text="Back", command = lambda: [window.destroy(), create_main_window()])
 
     # Ubica los elementos en la ventana
     label_username.pack()
@@ -65,17 +65,21 @@ def create_action_window(btn_function):
     label_password.pack()
     entry_password.pack()
     button_action.pack()
+    button_main.pack()
 
-main_window = tk.Tk()
-main_window.geometry("300x150")
-main_window.title("Main")
-label_welcome = tk.Label(main_window, text="Welcome!")
-button_login = tk.Button(main_window, text="Login", command = lambda: create_action_window("Login"))
-button_signup = tk.Button(main_window, text="Sign Up", command = lambda: create_action_window("Sign Up"))
+def create_main_window():
+    main_window = tk.Tk()
+    main_window.geometry("300x150")
+    main_window.title("Main")
+    label_welcome = tk.Label(main_window, text="Welcome!")
+    button_login = tk.Button(main_window, text="Login", command = lambda: [main_window.destroy(), create_action_window("Login")])
+    button_signup = tk.Button(main_window, text="Sign Up", command = lambda: [main_window.destroy(), create_action_window("Sign Up")])
 
-label_welcome.pack()
-button_login.pack()
-button_signup.pack()
+    label_welcome.pack()
+    button_login.pack()
+    button_signup.pack()
+    main_window.mainloop()
+
+create_main_window()
 
 # Ejecuta el bucle principal de la ventana
-main_window.mainloop()

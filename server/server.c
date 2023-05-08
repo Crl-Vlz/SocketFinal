@@ -81,6 +81,7 @@ int add_user(char *user, char *key, FILE *file)
     while (fgets(buffer, MAX_LENGTH, file))
         if (strcmp(buffer, userkey) == 0)
             return FAIL;
+    sprintf(userkey, "\n%s:%s", user, key);
     fputs(userkey, file);
     return SUCCESS;
 }
@@ -96,6 +97,7 @@ int check_user(char *user, char *key, FILE *file)
 {
     char buffer[MAX_LENGTH];
     char userkey[MAX_LENGTH];
+    char userkey2[MAX_LENGTH];
     sprintf(userkey, "%s:%s\n", user, key);
     rewind(file);
     // Add validation for error in password

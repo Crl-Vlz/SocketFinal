@@ -19,7 +19,7 @@ def send_to_server(data, operation):
 
     try:
         # Envía los valores de inicio de sesion al servidor
-        message = f"{username}:{password}:{operation}\n"
+        message = f"{username}:{password}:{operation}"
         client_socket.sendall(message.encode())
 
         # Espera la respuesta del servidor

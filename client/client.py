@@ -13,13 +13,13 @@ def send_to_server(data, operation):
     # Crea un socket TCP/IP
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # Conecta el cliente al servidor en la dirección y puerto especificados
-    server_address = ('172.18.2.3', 5000)
+    # Conecta el cliente al servidor en la direccion y puerto especificados
+    server_address = ('172.18.2.2', 5000)
     client_socket.connect((server_address))
 
     try:
-        # Envía los valores de inicio de sesión al servidor
-        message = f"{username}:{password}:{operation}"
+        # Envía los valores de inicio de sesion al servidor
+        message = f"{username}:{password}:{operation}\n"
         client_socket.sendall(message.encode())
 
         # Espera la respuesta del servidor
@@ -27,7 +27,7 @@ def send_to_server(data, operation):
         print(response.decode())
 
     finally:
-        # Cierra la conexión
+        # Cierra la conexion
         client_socket.close()
 
 #------------------------------------------------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ def validate(user, user_password):
     username = user.get()
     password = user_password.get() 
 
-    # Verifica si los campos están vacíos
+    # Verifica si los campos estan vacios
     if not username or not password:
         messagebox.showwarning("Error", "¨Please, fill all the fields")
         return

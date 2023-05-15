@@ -40,6 +40,9 @@
  */
 FILE *user_file;
 
+// Key used for XOR encryption
+char *KEY = "puropinchechensomanalv";
+
 /*
  * Struct for use with users
  * Stores the user info along with currently connected socket
@@ -61,6 +64,35 @@ void sigint_handler(int sig)
     if (user_file != NULL)
         fclose(user_file);
     exit(0);
+}
+
+/*
+ * Encrypts and deencrypts a text using a specific key
+ * param data: String to modify
+ * param key: Key used as cipher
+ * return: Modified text
+ */
+char *XORCipher(char *data, char *key)
+{
+    int len = strlen(data);
+    int key_len = strlen(key);
+    char *output = (char *)malloc(sizeof(char) * len + 1);
+
+    for (int i = 0; i < len; ++i) {
+        int ch = data[i] ^ key[i % key_len];
+		if (data[i] == key[i % key_len]){
+			ch = (int)key[i % key_len];
+		}
+		if (ch != 0){
+			output[i] = ch;
+		} else {
+			printf("Null terminator encountered\n");
+			output[i] = key[i % key_len];
+		}
+    }
+    output[len] = '\0';  // Add null terminator at the end
+
+    return output;
 }
 
 /*
@@ -107,6 +139,14 @@ int check_user(char *user, char *key, FILE *file)
     return FAIL;
 }
 
+int create_group(char *user, char *group)
+{
+    FILE *grp_file;
+    char buffer[MAX_LENGTH];
+    sprintf(buffer, "%s.cnv", group);
+    grp_file = fopen(buffer, "a+");
+}
+
 /*
  * Manages the request of a new user, in that case logs them in or
  * signs them up, should add them then to the active user list.
@@ -122,6 +162,9 @@ int manage_user_request(char *req, FILE *file)
     char pass[MAX_LENGTH];
     int dest = 0;
     int j = 0;
+    printf("%s\n", req);
+    req = XORCipher(req, KEY);
+    printf("%s\n", req);
     // Code for split by ':' character
     for (int i = 0; i < strlen(req); i++)
     {
@@ -148,7 +191,7 @@ int manage_user_request(char *req, FILE *file)
         return add_user(user, pass, file);
         break;
     default:
-        perror("Code error");
+        printf("Code error\n");
         return FAIL;
     }
 }
@@ -161,6 +204,7 @@ int main(void)
 
     int nusers = 0;
     int server_fd, max_fds, activity;
+    int client_sockets[MAX_USERS]; // C initializes the values to 0
     struct sockaddr_in address;
     int addrlen = sizeof(address);
     fd_set read_fds;
@@ -199,7 +243,7 @@ int main(void)
 
         if (activity = select(max_fds + 1, &read_fds, NULL, NULL, NULL) < 0)
         {
-            perror("Select Failure");
+            perror("Select Failure\n");
             continue;
         }
 
@@ -209,28 +253,45 @@ int main(void)
             if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
                                      (socklen_t *)&addrlen)) < 0)
             {
-                perror("Error accepting connection");
+                perror("Error accepting connection\n");
             }
             if (recv(new_socket, buffer, MAX_LENGTH, 0) < 0)
             {
-                perror("Error reading data");
+                perror("Error reading data\n");
                 close(new_socket);
             }
             if (manage_user_request(buffer, user_file) == SUCCESS)
             {
-                send(new_socket, "accept", strlen("accept"), 0);
+                send(new_socket, XORCipher("accept", KEY), strlen("accept"), 0);
                 FD_SET(new_socket, &read_fds);
+                client_sockets[nusers++] = new_socket;
             }
             else
             {
-                send(new_socket, "failure", strlen("failure"), 0);
+                send(new_socket, XORCipher("failure", KEY), strlen("failure"), 0);
                 close(new_socket);
             }
         }
-        else
-        {
-            // Recv logic goes here
-        }
+
+        // // Check foe events in client sockets
+        // for (int i = 0; i < MAX_USERS; i++)
+        // {
+        //     int sd = client_sockets[i];
+        //     if (FD_ISSET(sd, &read_fds))
+        //     {
+        //         // Check if socket was closed
+        //         if (recv(sd, buffer, MAX_LENGTH, 0) == 0)
+        //         {
+        //             close(sd);
+        //             FD_CLR(sd, &read_fds);
+        //             client_sockets[i] = 0;
+        //         }
+        //         else
+        //         {
+        //             // Handle recieved data
+        //         }
+        //     }
+        // }
     }
     fclose(user_file);
     return 0;

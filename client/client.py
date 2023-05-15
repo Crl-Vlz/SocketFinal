@@ -10,8 +10,8 @@ def send_to_server(data, operation):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Conecta el cliente al servidor en la direccion y puerto especificados
-    server_address = ('172.18.2.3', 5000)
-    client_socket.connect((server_address))
+    server_address = ('172.18.2.2', 5000)
+    client_socket.connect(server_address)
 
     username = data[0]
     if operation == "Login": operation = 1
@@ -22,12 +22,16 @@ def send_to_server(data, operation):
     try:
         # Envía los valores de inicio de sesion al servidor
         # data[1] puede ser password o groupname, dependiendo de la opcion seleccionada
-        message = f"{encryption(username)}:{encryption(data[1])}:{operation}"
+        message = f"{username}:{data[1]}:{operation}"
+        print(message)
+        message = encryption(message)
+        print("{message}")
         client_socket.sendall(message.encode())
 
         # Espera la respuesta del servidor
         response = client_socket.recv(1024)
-        print(response.decode())
+        response = encryption(response.decode())
+        print(response)
 
     finally:
         # Cierra la conexion
@@ -40,7 +44,12 @@ def encryption(data):
     for i in range(len(data)):
         # Aplica el XOR entre el carácter del mensaje y el carácter de la clave
         # Utiliza la función chr() para convertir el resultado de nuevo en un carácter
-        encrypted += chr(ord(data[i]) ^ ord(key[i % len(key)]))
+        letter = ord(data[i]) ^ ord(key[i % len(key)])
+        if data[i] == key[i % len(key)]:
+            letter = ord(data[i])
+        if letter == 0:
+            letter = ord(key[i % len(key)])
+        encrypted += (chr(letter))
         
     return encrypted
 

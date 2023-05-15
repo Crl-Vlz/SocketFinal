@@ -25,7 +25,7 @@ def send_to_server(data, operation):
         message = f"{username}:{data[1]}:{operation}"
         print(message)
         message = encryption(message)
-        print("{message}")
+        print(f"{message}")
         client_socket.sendall(message.encode())
 
         # Espera la respuesta del servidor

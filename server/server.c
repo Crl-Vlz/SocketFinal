@@ -78,19 +78,24 @@ char *XORCipher(char *data, char *key)
     int key_len = strlen(key);
     char *output = (char *)malloc(sizeof(char) * len + 1);
 
-    for (int i = 0; i < len; ++i) {
+    for (int i = 0; i < len; ++i)
+    {
         int ch = data[i] ^ key[i % key_len];
-		if (data[i] == key[i % key_len]){
-			ch = (int)key[i % key_len];
-		}
-		if (ch != 0){
-			output[i] = ch;
-		} else {
-			printf("Null terminator encountered\n");
-			output[i] = key[i % key_len];
-		}
+        if (data[i] == key[i % key_len])
+        {
+            ch = (int)key[i % key_len];
+        }
+        if (ch != 0)
+        {
+            output[i] = ch;
+        }
+        else
+        {
+            printf("Null terminator encountered\n");
+            output[i] = key[i % key_len];
+        }
     }
-    output[len] = '\0';  // Add null terminator at the end
+    output[len] = '\0'; // Add null terminator at the end
 
     return output;
 }
@@ -139,12 +144,44 @@ int check_user(char *user, char *key, FILE *file)
     return FAIL;
 }
 
-int create_group(char *user, char *group)
+int make_group(char *user, char *group)
 {
     FILE *grp_file;
     char buffer[MAX_LENGTH];
     sprintf(buffer, "%s.cnv", group);
-    grp_file = fopen(buffer, "a+");
+    if (access(buffer, F_OK) == 0)
+    {
+        return FAIL;
+    }
+    else
+    {
+        grp_file = fopen(buffer, "w");
+        fclose(grp_file);
+        sprintf(buffer, "%s.usr", group);
+        grp_file = fopen(buffer, "w");
+        fputs(user, grp_file);
+        fclose(grp_file);
+        return SUCCESS;
+    }
+}
+
+int join_group(char *user, char *group)
+{
+    char fname[1024];
+    sprintf(fname, "%s.usr", group);
+    if (access(fname, F_OK) == 0)
+    {
+        FILE *fp = fopen(fname, "a+");
+        char usep[1024];
+        sprintf(usep, "\n%s", user);
+        fputs(usep, fp);
+        fclose(fp);
+        return SUCCESS;
+    }
+    else
+    {
+        return FAIL;
+    }
 }
 
 /*
@@ -182,13 +219,19 @@ int manage_user_request(char *req, FILE *file)
     strcpy(parts[dest], buffer);
     strcpy(user, parts[0]);
     strcpy(pass, parts[1]);
-    switch (atoi(parts[2]))
+    switch (atoi(&parts[2][0]))
     {
     case 1:
         return check_user(user, pass, file);
         break;
     case 2:
         return add_user(user, pass, file);
+        break;
+    case 3:
+        return join_group(user, pass);
+        break;
+    case 4:
+        return make_group(user, pass);
         break;
     default:
         printf("Code error\n");
@@ -209,6 +252,11 @@ int main(void)
     int addrlen = sizeof(address);
     fd_set read_fds;
     char buffer[MAX_LENGTH];
+
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        client_sockets[i] = 0;
+    }
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
@@ -273,25 +321,32 @@ int main(void)
             }
         }
 
-        // // Check foe events in client sockets
-        // for (int i = 0; i < MAX_USERS; i++)
-        // {
-        //     int sd = client_sockets[i];
-        //     if (FD_ISSET(sd, &read_fds))
-        //     {
-        //         // Check if socket was closed
-        //         if (recv(sd, buffer, MAX_LENGTH, 0) == 0)
-        //         {
-        //             close(sd);
-        //             FD_CLR(sd, &read_fds);
-        //             client_sockets[i] = 0;
-        //         }
-        //         else
-        //         {
-        //             // Handle recieved data
-        //         }
-        //     }
-        // }
+        for (int i = 0; i < MAX_USERS; i++)
+        {
+            int sd = client_sockets[i];
+
+            if (FD_ISSET(sd, &read_fds))
+            {
+                // Checks if socket was closed
+                if (read(sd, buffer, 1024) == 0)
+                {
+                    close(sd);
+                    client_sockets[i] = 0;
+                }
+
+                else
+                {
+                    if (manage_user_request(buffer, user_file) == SUCCESS)
+                    {
+                        send(sd, XORCipher("accept", KEY), strlen("accept"), 0);
+                    }
+                    else
+                    {
+                        send(sd, XORCipher("failure", KEY), strlen("failure"), 0);
+                    }
+                }
+            }
+        }
     }
     fclose(user_file);
     return 0;

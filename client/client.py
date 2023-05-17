@@ -10,7 +10,7 @@ def send_to_server(data, operation):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Conecta el cliente al servidor en la direccion y puerto especificados
-    server_address = ('172.18.2.2', 5000)
+    server_address = ('172.18.2.3', 5000)
     client_socket.connect(server_address)
 
     username = data[0]
@@ -33,10 +33,12 @@ def send_to_server(data, operation):
         response = encryption(response.decode())
         print(response)
 
+
     finally:
         # Cierra la conexion
         client_socket.close()
-
+        return response
+    
 def encryption(data):
     
     key = 'puropinchechensomanalv'
@@ -81,8 +83,11 @@ def create_users_window(btn_function):
     if btn_function == "Sign Up":
         button_action = tk.Button(users_window, text=btn_function, command = lambda: [send_to_server([validate(entry_username), validate(entry_password)], btn_function)])
     elif btn_function == "Login":
-        button_action = tk.Button(users_window, text=btn_function, command = lambda: [send_to_server([validate(entry_username), validate(entry_password)], btn_function), 
-                                                                                      create_users_options_window(validate(entry_username)), users_window.destroy()])
+        button_action = tk.Button(users_window, text=btn_function, command = lambda: [create_users_options_window(validate(entry_username),
+                                                                                                                send_to_server([validate(entry_username), 
+                                                                                                                                validate(entry_password)], 
+                                                                                                                                btn_function), users_window), 
+                                                                                                                                users_window.destroy()])
         
     button_main = tk.Button(users_window, text="Back", command = lambda: [create_main_window(), users_window.destroy()])
 
@@ -107,11 +112,12 @@ def create_main_window():
     button_signup.pack()
     main_window.mainloop()
 
-def create_users_options_window(user):
-    if user is not False:
-        user_options_window = tk.Tk()
-        user_options_window.geometry("300x150")
-        user_options_window.title("User Options")
+def create_users_options_window(user, auth, users_window):
+    user_options_window = tk.Tk()
+    user_options_window.geometry("300x150")
+    user_options_window.title("User Options")
+
+    if user is not False and auth != 'failure':
         label_greetings = tk.Label(user_options_window, text=(f"Greetings, {user}! Please select an option"))
         button_join = tk.Button(user_options_window, text="Join an existing group", command = lambda: [create_groups_window("Join Group", user), user_options_window.destroy()])
         button_create = tk.Button(user_options_window, text="Create a new group", command = lambda: [create_groups_window("Create Group", user), user_options_window.destroy()])
@@ -121,6 +127,12 @@ def create_users_options_window(user):
         button_join.pack()
         button_create.pack()
         button_main.pack()
+    else:
+        messagebox.showwarning("Error", "Wrong username or password")
+        users_window.destroy()
+        user_options_window.destroy()
+
+        create_main_window()
 
 def create_groups_window(btn_function, user):
     # Crea la nueva ventana

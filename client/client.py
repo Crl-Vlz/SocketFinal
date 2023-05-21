@@ -8,41 +8,39 @@ def send_to_server(username, data, operation):
     if not username or not data:
         messagebox.showwarning("Error", "¨Please, fill all the fields")
         return
-    else: 
-        return 'accept'
 
-    #  # Crea un socket TCP/IP
-    # client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Crea un socket TCP/IP
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # # Conecta el cliente al servidor en la direccion y puerto especificados
-    # server_address = ('172.18.2.3', 5000)
-    # client_socket.connect(server_address)
+    # Conecta el cliente al servidor en la direccion y puerto especificados
+    server_address = ('172.18.2.3', 5000)
+    client_socket.connect(server_address)
 
-    # if operation == "Login": operation = 1
-    # elif operation == "Sign Up": operation = 2
-    # elif operation == "Join Group": operation = 3
-    # elif operation == "Create Group": operation = 4
+    if operation == "Login": operation = 1
+    elif operation == "Sign Up": operation = 2
+    elif operation == "Join Group": operation = 3
+    elif operation == "Create Group": operation = 4
 
-    # try:
-    #     # Envía los valores de inicio de sesion al servidor
-    #     # data puede ser password o groupname, dependiendo de la opcion seleccionada
-    #     message = f"{username}:{data}:{operation}"
-    #     print(message)
-    #     message = encryption(message)
-    #     print(f"{message}")
-    #     client_socket.sendall(message.encode())
+    try:
+        # Envía los valores de inicio de sesion al servidor
+        # data puede ser password o groupname, dependiendo de la opcion seleccionada
+        message = f"{username}:{data}:{operation}"
+        print(message)
+        message = encryption(message)
+        print(f"{message}")
+        client_socket.sendall(message.encode())
 
-    #     # Espera la respuesta del servidor
-    #     response = client_socket.recv(1024)
-    #     response = encryption(response.decode())
-    #     
+        # Espera la respuesta del servidor
+        response = client_socket.recv(1024)
+        response = encryption(response.decode())
+        
 
 
-    # finally:
-    #     # Cierra la conexion
-    #     client_socket.close()
-    #     if response != "accept": messagebox.showwarning("Error", "Wrong username or password")
-    #     return response
+    finally:
+        # Cierra la conexion
+        client_socket.close()
+        if response != "accept": messagebox.showwarning("Error", "Wrong username or password")
+        return response
     
 def encryption(data):
     
@@ -110,7 +108,7 @@ def create_main_window():
     main_window.mainloop()
 
 def create_users_options_window(user, auth, users_window):
-    
+
     if auth == 'accept':
         user_options_window = tk.Tk()
         user_options_window.geometry("300x150")

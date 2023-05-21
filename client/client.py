@@ -3,41 +3,46 @@ from tkinter import messagebox
 
 import socket
 
-def send_to_server(data, operation):
+def send_to_server(username, data, operation):
 
-    if data == False: return
-     # Crea un socket TCP/IP
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if not username or not data:
+        messagebox.showwarning("Error", "¨Please, fill all the fields")
+        return
+    else: 
+        return 'accept'
 
-    # Conecta el cliente al servidor en la direccion y puerto especificados
-    server_address = ('172.18.2.3', 5000)
-    client_socket.connect(server_address)
+    #  # Crea un socket TCP/IP
+    # client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    username = data[0]
-    if operation == "Login": operation = 1
-    elif operation == "Sign Up": operation = 2
-    elif operation == "Join Group": operation = 3
-    elif operation == "Create Group": operation = 4
+    # # Conecta el cliente al servidor en la direccion y puerto especificados
+    # server_address = ('172.18.2.3', 5000)
+    # client_socket.connect(server_address)
 
-    try:
-        # Envía los valores de inicio de sesion al servidor
-        # data[1] puede ser password o groupname, dependiendo de la opcion seleccionada
-        message = f"{username}:{data[1]}:{operation}"
-        print(message)
-        message = encryption(message)
-        print(f"{message}")
-        client_socket.sendall(message.encode())
+    # if operation == "Login": operation = 1
+    # elif operation == "Sign Up": operation = 2
+    # elif operation == "Join Group": operation = 3
+    # elif operation == "Create Group": operation = 4
 
-        # Espera la respuesta del servidor
-        response = client_socket.recv(1024)
-        response = encryption(response.decode())
-        print(response)
+    # try:
+    #     # Envía los valores de inicio de sesion al servidor
+    #     # data puede ser password o groupname, dependiendo de la opcion seleccionada
+    #     message = f"{username}:{data}:{operation}"
+    #     print(message)
+    #     message = encryption(message)
+    #     print(f"{message}")
+    #     client_socket.sendall(message.encode())
+
+    #     # Espera la respuesta del servidor
+    #     response = client_socket.recv(1024)
+    #     response = encryption(response.decode())
+    #     
 
 
-    finally:
-        # Cierra la conexion
-        client_socket.close()
-        return response
+    # finally:
+    #     # Cierra la conexion
+    #     client_socket.close()
+    #     if response != "accept": messagebox.showwarning("Error", "Wrong username or password")
+    #     return response
     
 def encryption(data):
     
@@ -58,15 +63,6 @@ def encryption(data):
 
 #------------------------------------------------------------------------------------------------------------------------------------------
 
-def validate(data):
-
-    # Verifica si los campos estan vacios
-    if not data.get():
-        messagebox.showwarning("Error", "¨Please, fill all the fields")
-        return
-    else: 
-        return data.get()
-
 def create_users_window(btn_function):
     
     # Crea la nueva ventana
@@ -81,15 +77,16 @@ def create_users_window(btn_function):
     entry_password = tk.Entry(users_window, show="*")
     # Envía a la funcion "send_to_server" los datos despues de verificar que los campos no estén vacíos como un parámetro, así como el tipo de acción que realizará
     if btn_function == "Sign Up":
-        button_action = tk.Button(users_window, text=btn_function, command = lambda: [send_to_server([validate(entry_username), validate(entry_password)], btn_function)])
+        button_action = tk.Button(users_window, text=btn_function, command = lambda: [send_to_server(entry_username.get(), 
+                                                                                                     entry_password.get(), btn_function)])
     elif btn_function == "Login":
-        button_action = tk.Button(users_window, text=btn_function, command = lambda: [create_users_options_window(validate(entry_username),
-                                                                                                                send_to_server([validate(entry_username), 
-                                                                                                                                validate(entry_password)], 
-                                                                                                                                btn_function), users_window), 
-                                                                                                                                users_window.destroy()])
-        
-    button_main = tk.Button(users_window, text="Back", command = lambda: [create_main_window(), users_window.destroy()])
+        button_action = tk.Button(users_window, text=btn_function, 
+                                  command = lambda: [create_users_options_window(entry_username.get(),
+                                                                                 send_to_server(entry_username.get(), entry_password.get(), 
+                                                                                                btn_function), users_window), 
+                                                                                                users_window.destroy()])
+
+    button_main = tk.Button(users_window, text="Back", command = lambda: [users_window.destroy(), create_main_window()])
 
     # Ubica los elementos en la ventana
     label_username.pack()
@@ -113,11 +110,11 @@ def create_main_window():
     main_window.mainloop()
 
 def create_users_options_window(user, auth, users_window):
-    user_options_window = tk.Tk()
-    user_options_window.geometry("300x150")
-    user_options_window.title("User Options")
-
-    if user is not False and auth != 'failure':
+    
+    if auth == 'accept':
+        user_options_window = tk.Tk()
+        user_options_window.geometry("300x150")
+        user_options_window.title("User Options")
         label_greetings = tk.Label(user_options_window, text=(f"Greetings, {user}! Please select an option"))
         button_join = tk.Button(user_options_window, text="Join an existing group", command = lambda: [create_groups_window("Join Group", user), user_options_window.destroy()])
         button_create = tk.Button(user_options_window, text="Create a new group", command = lambda: [create_groups_window("Create Group", user), user_options_window.destroy()])
@@ -128,10 +125,7 @@ def create_users_options_window(user, auth, users_window):
         button_create.pack()
         button_main.pack()
     else:
-        messagebox.showwarning("Error", "Wrong username or password")
         users_window.destroy()
-        user_options_window.destroy()
-
         create_main_window()
 
 def create_groups_window(btn_function, user):
@@ -144,8 +138,8 @@ def create_groups_window(btn_function, user):
     label_groupname = tk.Label(groups_window, text="Group Name:")
     entry_groupname = tk.Entry(groups_window)
     # Envía a la funcion "send_to_server" los datos despues de verificar que los campos no estén vacíos como un parámetro, así como el tipo de acción que realizará
-    button_action = tk.Button(groups_window, text=btn_function, command = lambda: send_to_server([user, validate(entry_groupname)], btn_function))
-    button_main = tk.Button(groups_window, text="Back", command = lambda: [create_users_options_window(user), groups_window.destroy()])
+    button_action = tk.Button(groups_window, text=btn_function, command = lambda: send_to_server(user, entry_groupname, btn_function))
+    button_main = tk.Button(groups_window, text="Back", command = lambda: [create_main_window(), groups_window.destroy()])
 
     # Ubica los elementos en la ventana
     label_groupname.pack()

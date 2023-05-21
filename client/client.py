@@ -36,8 +36,6 @@ def send_to_server(username, data, operation):
         # Espera la respuesta del servidor
         response = client_socket.recv(1024)
         response = encryption(response.decode())
-        
-
 
     finally:
         # Cierra la conexion
@@ -60,7 +58,6 @@ def encryption(data):
         encrypted += (chr(letter))
         
     return encrypted
-
 
 #------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -192,19 +189,7 @@ def create_groups_view_window(btn_function, user):
 
     # Empaquetar el widget Canvas
     
-    
+#------------------------------------------------------------------------------------------------------------------------------------  
 
-    
+create_main_window() # Ejecuta el bucle principal de la ventana, Aquí empieza el programa
 
-    
-    
-
-    
-        
-
-
-
-
-create_main_window()
-
-# Ejecuta el bucle principal de la ventana

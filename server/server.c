@@ -26,6 +26,7 @@
 #define SUCCESS 1
 // Code for failed operations
 #define FAIL 0
+// File
 
 /*
  * User init format
@@ -64,6 +65,21 @@ void sigint_handler(int sig)
     if (user_file != NULL)
         fclose(user_file);
     exit(0);
+}
+
+/*
+ * Replaces all instances of a char to a second char
+ * param *string: String to modify
+ * param target: Char to replace
+ * param to_replace: Char that replaces the target char
+ */
+void replace_char(char *string, char target, char to_replace)
+{
+    for (int i = 0; i < strlen(string); i++)
+    {
+        if (string[i] == target)
+            string[i] = to_replace;
+    }
 }
 
 /*
@@ -112,12 +128,15 @@ int add_user(char *user, char *key, FILE *file)
 {
     char buffer[MAX_LENGTH];
     char userkey[MAX_LENGTH];
-    sprintf(userkey, "%s:%s\n", user, key);
+    sprintf(userkey, "%s:%s", user, key);
     rewind(file);
     // Change this to only look for user
     while (fgets(buffer, MAX_LENGTH, file))
+    {
+        replace_char(buffer, '/n', '/0');
         if (strcmp(buffer, userkey) == 0)
             return FAIL;
+    }
     sprintf(userkey, "\n%s:%s", user, key);
     fputs(userkey, file);
     return SUCCESS;
@@ -134,13 +153,15 @@ int check_user(char *user, char *key, FILE *file)
 {
     char buffer[MAX_LENGTH];
     char userkey[MAX_LENGTH];
-    char userkey2[MAX_LENGTH];
-    sprintf(userkey, "%s:%s\n", user, key);
+    sprintf(userkey, "%s:%s", user, key);
     rewind(file);
     // Add validation for error in password
     while (fgets(buffer, MAX_LENGTH, file))
+    {
+        replace_char(buffer, '/n', '/0');
         if (strcmp(buffer, userkey) == 0)
             return SUCCESS;
+    }
     return FAIL;
 }
 

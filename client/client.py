@@ -10,7 +10,7 @@ def send_to_server(data, operation):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Conecta el cliente al servidor en la direccion y puerto especificados
-    server_address = ('172.18.2.3', 5000)
+    server_address = ('172.18.2.2', 5000)
     client_socket.connect(server_address)
 
     username = data[0]

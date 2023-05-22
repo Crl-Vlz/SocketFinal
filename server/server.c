@@ -133,7 +133,7 @@ int add_user(char *user, char *key, FILE *file)
     // Change this to only look for user
     while (fgets(buffer, MAX_LENGTH, file))
     {
-        replace_char(buffer, '/n', '/0');
+        replace_char(buffer, '\n', '\0');
         if (strcmp(buffer, userkey) == 0)
             return FAIL;
     }
@@ -158,7 +158,8 @@ int check_user(char *user, char *key, FILE *file)
     // Add validation for error in password
     while (fgets(buffer, MAX_LENGTH, file))
     {
-        replace_char(buffer, '/n', '/0');
+        replace_char(buffer, '\n', '\0');
+        printf("%s\n", buffer);
         if (strcmp(buffer, userkey) == 0)
             return SUCCESS;
     }

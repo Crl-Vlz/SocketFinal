@@ -5,7 +5,7 @@ docker run -it --privileged --name cliente_login --network distributedCompNetwor
 # must have xming installed. 
 
 once the client container is running, install python and tkinter with: 
-sudo apt.get install python3
-sudo apt.get install python3.tk
+sudo apt-get install python3
+sudo apt-get install python3.tk
 
 run the code with this command: python3 client.py

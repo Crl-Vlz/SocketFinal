@@ -26,6 +26,7 @@
 #define SUCCESS 1
 // Code for failed operations
 #define FAIL 0
+// File
 
 /*
  * User init format
@@ -39,6 +40,9 @@
  * User key file, stores all users and passwords
  */
 FILE *user_file;
+
+// Key used for XOR encryption
+char *KEY = "puropinchechensomanalv";
 
 /*
  * Struct for use with users
@@ -64,6 +68,55 @@ void sigint_handler(int sig)
 }
 
 /*
+ * Replaces all instances of a char to a second char
+ * param *string: String to modify
+ * param target: Char to replace
+ * param to_replace: Char that replaces the target char
+ */
+void replace_char(char *string, char target, char to_replace)
+{
+    for (int i = 0; i < strlen(string); i++)
+    {
+        if (string[i] == target)
+            string[i] = to_replace;
+    }
+}
+
+/*
+ * Encrypts and deencrypts a text using a specific key
+ * param data: String to modify
+ * param key: Key used as cipher
+ * return: Modified text
+ */
+char *XORCipher(char *data, char *key)
+{
+    int len = strlen(data);
+    int key_len = strlen(key);
+    char *output = (char *)malloc(sizeof(char) * len + 1);
+
+    for (int i = 0; i < len; ++i)
+    {
+        int ch = data[i] ^ key[i % key_len];
+        if (data[i] == key[i % key_len])
+        {
+            ch = (int)key[i % key_len];
+        }
+        if (ch != 0)
+        {
+            output[i] = ch;
+        }
+        else
+        {
+            printf("Null terminator encountered\n");
+            output[i] = key[i % key_len];
+        }
+    }
+    output[len] = '\0'; // Add null terminator at the end
+
+    return output;
+}
+
+/*
  * Adds a user to the user key file
  * param user: User name string
  * param key: Password string
@@ -75,12 +128,15 @@ int add_user(char *user, char *key, FILE *file)
 {
     char buffer[MAX_LENGTH];
     char userkey[MAX_LENGTH];
-    sprintf(userkey, "%s:%s\n", user, key);
+    sprintf(userkey, "%s:%s", user, key);
     rewind(file);
     // Change this to only look for user
     while (fgets(buffer, MAX_LENGTH, file))
+    {
+        replace_char(buffer, '\n', '\0');
         if (strcmp(buffer, userkey) == 0)
             return FAIL;
+    }
     sprintf(userkey, "\n%s:%s", user, key);
     fputs(userkey, file);
     return SUCCESS;
@@ -97,14 +153,57 @@ int check_user(char *user, char *key, FILE *file)
 {
     char buffer[MAX_LENGTH];
     char userkey[MAX_LENGTH];
-    char userkey2[MAX_LENGTH];
-    sprintf(userkey, "%s:%s\n", user, key);
+    sprintf(userkey, "%s:%s", user, key);
     rewind(file);
     // Add validation for error in password
     while (fgets(buffer, MAX_LENGTH, file))
+    {
+        replace_char(buffer, '\n', '\0');
+        printf("%s\n", buffer);
         if (strcmp(buffer, userkey) == 0)
             return SUCCESS;
+    }
     return FAIL;
+}
+
+int make_group(char *user, char *group)
+{
+    FILE *grp_file;
+    char buffer[MAX_LENGTH];
+    sprintf(buffer, "%s.cnv", group);
+    if (access(buffer, F_OK) == 0)
+    {
+        return FAIL;
+    }
+    else
+    {
+        grp_file = fopen(buffer, "w");
+        fclose(grp_file);
+        sprintf(buffer, "%s.usr", group);
+        grp_file = fopen(buffer, "w");
+        fputs(user, grp_file);
+        fclose(grp_file);
+        return SUCCESS;
+    }
+}
+
+int join_group(char *user, char *group)
+{
+    char fname[1024];
+    sprintf(fname, "%s.usr", group);
+    if (access(fname, F_OK) == 0)
+    {
+        FILE *fp = fopen(fname, "a+");
+        char usep[1024];
+        sprintf(usep, "\n%s", user);
+        fputs(usep, fp);
+        fclose(fp);
+        return SUCCESS;
+    }
+    else
+    {
+        return FAIL;
+    }
 }
 
 /*
@@ -122,6 +221,9 @@ int manage_user_request(char *req, FILE *file)
     char pass[MAX_LENGTH];
     int dest = 0;
     int j = 0;
+    printf("%s\n", req);
+    req = XORCipher(req, KEY);
+    printf("%s\n", req);
     // Code for split by ':' character
     for (int i = 0; i < strlen(req); i++)
     {
@@ -139,7 +241,7 @@ int manage_user_request(char *req, FILE *file)
     strcpy(parts[dest], buffer);
     strcpy(user, parts[0]);
     strcpy(pass, parts[1]);
-    switch (atoi(parts[2]))
+    switch (atoi(&parts[2][0]))
     {
     case 1:
         return check_user(user, pass, file);
@@ -147,8 +249,14 @@ int manage_user_request(char *req, FILE *file)
     case 2:
         return add_user(user, pass, file);
         break;
+    case 3:
+        return join_group(user, pass);
+        break;
+    case 4:
+        return make_group(user, pass);
+        break;
     default:
-        perror("Code error");
+        printf("Code error\n");
         return FAIL;
     }
 }
@@ -161,10 +269,16 @@ int main(void)
 
     int nusers = 0;
     int server_fd, max_fds, activity;
+    int client_sockets[MAX_USERS]; // C initializes the values to 0
     struct sockaddr_in address;
     int addrlen = sizeof(address);
     fd_set read_fds;
     char buffer[MAX_LENGTH];
+
+    for (int i = 0; i < MAX_USERS; i++)
+    {
+        client_sockets[i] = 0;
+    }
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
@@ -199,7 +313,7 @@ int main(void)
 
         if (activity = select(max_fds + 1, &read_fds, NULL, NULL, NULL) < 0)
         {
-            perror("Select Failure");
+            perror("Select Failure\n");
             continue;
         }
 
@@ -209,27 +323,51 @@ int main(void)
             if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
                                      (socklen_t *)&addrlen)) < 0)
             {
-                perror("Error accepting connection");
+                perror("Error accepting connection\n");
             }
             if (recv(new_socket, buffer, MAX_LENGTH, 0) < 0)
             {
-                perror("Error reading data");
+                perror("Error reading data\n");
                 close(new_socket);
             }
             if (manage_user_request(buffer, user_file) == SUCCESS)
             {
-                send(new_socket, "accept", strlen("accept"), 0);
+                send(new_socket, XORCipher("accept", KEY), strlen("accept"), 0);
                 FD_SET(new_socket, &read_fds);
+                client_sockets[nusers++] = new_socket;
             }
             else
             {
-                send(new_socket, "failure", strlen("failure"), 0);
+                send(new_socket, XORCipher("failure", KEY), strlen("failure"), 0);
                 close(new_socket);
             }
         }
-        else
+
+        for (int i = 0; i < MAX_USERS; i++)
         {
-            // Recv logic goes here
+            int sd = client_sockets[i];
+
+            if (FD_ISSET(sd, &read_fds))
+            {
+                // Checks if socket was closed
+                if (read(sd, buffer, 1024) == 0)
+                {
+                    close(sd);
+                    client_sockets[i] = 0;
+                }
+
+                else
+                {
+                    if (manage_user_request(buffer, user_file) == SUCCESS)
+                    {
+                        send(sd, XORCipher("accept", KEY), strlen("accept"), 0);
+                    }
+                    else
+                    {
+                        send(sd, XORCipher("failure", KEY), strlen("failure"), 0);
+                    }
+                }
+            }
         }
     }
     fclose(user_file);

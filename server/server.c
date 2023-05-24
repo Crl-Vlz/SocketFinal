@@ -139,8 +139,10 @@ int check_user(char *user, char *key, FILE *file)
     rewind(file);
     // Add validation for error in password
     while (fgets(buffer, MAX_LENGTH, file))
-        if (strcmp(buffer, userkey) == 0)
+        if (strcmp(buffer, userkey) == 0){
+            printf("Found user\n");
             return SUCCESS;
+        }
     return FAIL;
 }
 
@@ -219,6 +221,8 @@ int manage_user_request(char *req, FILE *file)
     strcpy(parts[dest], buffer);
     strcpy(user, parts[0]);
     strcpy(pass, parts[1]);
+    int op = atoi(&parts[2][0]);
+    printf("%d\n", op);
     switch (atoi(&parts[2][0]))
     {
     case 1:
@@ -232,6 +236,14 @@ int manage_user_request(char *req, FILE *file)
         break;
     case 4:
         return make_group(user, pass);
+        break;
+        case 5:
+        printf("%d\n", op);
+        return 0;
+        break;
+        case 6:
+        printf("%d\n", op);
+        return 0;
         break;
     default:
         printf("Code error\n");

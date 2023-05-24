@@ -14,7 +14,7 @@ def send_to_server(username, data, operation):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Conecta el cliente al servidor en la direccion y puerto especificados
-    server_address = ('172.18.2.3', 5000)
+    server_address = ('172.18.2.2', 5000)
     client_socket.connect(server_address)
 
     if operation == "Login": operation = 1
@@ -176,12 +176,12 @@ def create_groups_view_window(btn_function, user):
     buttons = []
     group_num = 1
     while(existing_groups > 0):
-        buttons.append(tk.Button(frame, text=f"group {group_num} (1 nueva)"))
+        buttons.append(tk.Button(frame, text=f"group {group_num} (1 nueva)" ))
         existing_groups -= 1
         group_num += 1
 
     for button in buttons:
-        button.command = send_to_server(user, f"{button.cget('text')}", "Enter Group")
+        button['command'] = lambda: send_to_server(user, f"{button.cget('text')}", "Enter Group")
         button.pack(pady = 2)
 
     frame.update_idletasks()  # Actualizar el tamaño del frame interior

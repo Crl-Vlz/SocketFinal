@@ -139,17 +139,27 @@ int check_user(char *user, char *key, FILE *file)
     rewind(file);
     // Add validation for error in password
     while (fgets(buffer, MAX_LENGTH, file))
-        if (strcmp(buffer, userkey) == 0){
+        if (strcmp(buffer, userkey) == 0)
+        {
             printf("Found user\n");
             return SUCCESS;
         }
     return FAIL;
 }
 
+/*
+ * Makes three different files: group members, group conversations, and updates user groups
+ * param user: String representing the user name
+ * param group: String representing the group name
+ * return: Group creation success state
+ */
 int make_group(char *user, char *group)
 {
     FILE *grp_file;
     char buffer[MAX_LENGTH];
+    char *userp, *groupp; // Printable implementations of user and group
+    sprintf(userp, "%s\n", user);
+    sprintf(groupp, "%s\n", group);
     sprintf(buffer, "%s.cnv", group);
     if (access(buffer, F_OK) == 0)
     {
@@ -161,12 +171,28 @@ int make_group(char *user, char *group)
         fclose(grp_file);
         sprintf(buffer, "%s.usr", group);
         grp_file = fopen(buffer, "w");
-        fputs(user, grp_file);
+        fputs(userp, grp_file);
         fclose(grp_file);
+        sprintf(buffer, "%s.grp", user);
+        grp_file = fopen(buffer, "a+");
+        fputs(groupp, grp_file);
+        fclose(grp_file);
+        grp_file = fopen("groups.lst", "a+");
+        fputs(groupp, grp_file);
+        free(userp);
+        free(groupp);
+        free(group);
+        free(user);
         return SUCCESS;
     }
 }
 
+/*
+ * Updates the files to add the user and add the group to the user's list
+ * param user: String representing the user name
+ * param group: String representing the group name
+ * return: Group join success state
+ */
 int join_group(char *user, char *group)
 {
     char fname[1024];
@@ -174,16 +200,41 @@ int join_group(char *user, char *group)
     if (access(fname, F_OK) == 0)
     {
         FILE *fp = fopen(fname, "a+");
-        char usep[1024];
-        sprintf(usep, "\n%s", user);
+        char *usep;
+        char *userfile;
+        sprintf(userfile, "%s.grp", user);
+        sprintf(usep, "%s\n", user);
         fputs(usep, fp);
         fclose(fp);
+        free(usep);
+        char *groupp;
+        sprintf(groupp, "%s\n", group);
+        fp = fopen(userfile, "a+");
+        fputs(groupp, fp);
+        fclose(fp);
+        free(user);
+        free(group);
+        free(groupp);
         return SUCCESS;
     }
     else
     {
         return FAIL;
     }
+}
+
+/*
+ * Adds a message to the group conversation file of a specific group
+ * param group: Name of the group
+ * param message: Message to append to the file
+ * param user: Name of the user obtained from User array
+ * return Succes state
+ */
+void send_conversations(char *group, char *message, char *user)
+{
+    char *group_file;
+    sprintf(group_file, "%s.cnv", group);
+    FILE *fp = fopen(group_file, "r");
 }
 
 /*
@@ -237,11 +288,11 @@ int manage_user_request(char *req, FILE *file)
     case 4:
         return make_group(user, pass);
         break;
-        case 5:
+    case 5:
         printf("%d\n", op);
         return 0;
         break;
-        case 6:
+    case 6:
         printf("%d\n", op);
         return 0;
         break;

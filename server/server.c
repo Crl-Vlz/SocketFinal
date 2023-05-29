@@ -66,6 +66,22 @@ void sigint_handler(int sig)
     exit(0);
 }
 
+void replace_char(char *string, char target, char to_replace)
+{
+    for (int i = 0; i < strlen(string); i++)
+    {
+        if (string[i] == target)
+            string[i] = to_replace;
+    }
+}
+
+void add_char(char *string, char to_add)
+{
+    int siz = strlen(string);
+    string[siz] = to_add;
+    string[siz + 1] = '\0';
+}
+
 /*
  * Encrypts and deencrypts a text using a specific key
  * param data: String to modify
@@ -204,6 +220,13 @@ int join_group(char *user, char *group)
         char *userfile;
         sprintf(userfile, "%s.grp", user);
         sprintf(usep, "%s\n", user);
+        char buffer[MAX_LENGTH];
+        while (fgets(buffer, MAX_LENGTH, fp))
+        {
+            replace_char(buffer, "\n", "\0");
+            if (strcmp(buffer, user) == 0)
+                return FAIL;
+        }
         fputs(usep, fp);
         fclose(fp);
         free(usep);

@@ -23,6 +23,7 @@ def send_to_server(username, data, operation):
     elif operation == "Create Group": operation = 4
     elif operation == "View Groups": operation = 5
     elif operation == "Enter Group": operation = 6
+    elif operation == "Send message": operation = 7
 
     try:
         # Envía los valores de inicio de sesion al servidor
@@ -61,7 +62,7 @@ def encryption(data):
 
 #------------------------------------------------------------------------------------------------------------------------------------------
 
-def create_users_window(btn_function):
+def create_users_window(btn_function):  # crea la ventana de usuarios, donde el usuario puede registrarse o iniciar sesión
     
     # Crea la nueva ventana
     users_window = tk.Tk()
@@ -73,7 +74,8 @@ def create_users_window(btn_function):
     entry_username = tk.Entry(users_window)
     label_password = tk.Label(users_window, text="Password:")
     entry_password = tk.Entry(users_window, show="*")
-    # Envía a la funcion "send_to_server" los datos despues de verificar que los campos no estén vacíos como un parámetro, así como el tipo de acción que realizará
+    # Envía a la funcion "send_to_server" los datos despues de verificar que los campos no estén vacíos como un parámetro, 
+    # así como el tipo de acción que realizará
     if btn_function == "Sign Up":
         button_action = tk.Button(users_window, text=btn_function, command = lambda: [send_to_server(entry_username.get(), 
                                                                                                      entry_password.get(), btn_function)])
@@ -106,11 +108,11 @@ def create_main_window():
     button_signup.pack()
     main_window.mainloop()
 
-def create_users_options_window(user, auth, users_window):
-    
-    users_window.destroy()
+def create_users_options_window(user, auth, users_window): # ventana donde el usuario ve las opciones que tiene, crear grupo, unirse a grupo
+                # o entrar al lobby donde puede ver los grupos a los que pertenece
+    users_window.destroy() # cierra la ventana anterior
 
-    if auth == 'accept':
+    if auth == 'accept':    # si el usuario hizo login exitosamente, creará los elementos de la ventana
         user_options_window = tk.Tk()
         user_options_window.geometry("300x150")
         user_options_window.title("User Options")
@@ -119,8 +121,8 @@ def create_users_options_window(user, auth, users_window):
                                 command = lambda: [create_groups_options_window("Join Group", user), user_options_window.destroy()])
         button_create = tk.Button(user_options_window, text="Create a new group", 
                                   command = lambda: [create_groups_options_window("Create Group", user), user_options_window.destroy()])
-        button_view = tk.Button(user_options_window, text="View my groups", 
-                                  command = lambda: [create_groups_view_window("View Groups", user), 
+        button_view = tk.Button(user_options_window, text="Lobby", 
+                                  command = lambda: [create_lobby_window(user), 
                                                      user_options_window.destroy()])
         button_main = tk.Button(user_options_window, text="Return to main screen", 
                                 command = lambda: [user_options_window.destroy(), create_main_window()])
@@ -133,7 +135,8 @@ def create_users_options_window(user, auth, users_window):
     else:
         create_main_window()
 
-def create_groups_options_window(btn_function, user):
+def create_groups_options_window(btn_function, user): # ventana donde puedes crear o unirte a un grupo
+                                            # depende de la opción que se eligió, mostrará botón para crear o unirse
     # Crea la nueva ventana
     group_options_window = tk.Tk()
     group_options_window.geometry("300x150")
@@ -142,7 +145,7 @@ def create_groups_options_window(btn_function, user):
     # Crea los elementos de la interfaz de usuario
     label_groupname = tk.Label(group_options_window, text="Group Name:")
     entry_groupname = tk.Entry(group_options_window)
-    # Envía a la funcion "send_to_server" los datos despues de verificar que los campos no estén vacíos como un parámetro, así como el tipo de acción que realizará
+    # Envía a la funcion "send_to_server" los datos entrados, así como el tipo de acción que realizará
     button_action = tk.Button(group_options_window, text=btn_function, command = lambda: send_to_server(user, entry_groupname.get(), btn_function))
     button_main = tk.Button(group_options_window, text="Back", command = lambda: [create_main_window(), group_options_window.destroy()])
 
@@ -152,13 +155,13 @@ def create_groups_options_window(btn_function, user):
     button_action.pack()
     button_main.pack()
 
-def create_groups_view_window(btn_function, user):
-    groups_view_window = tk.Tk()
-    groups_view_window.geometry("300x150")
-    groups_view_window.title("Groups View")
+def create_lobby_window(user):  # ventana del lobby, donde se muestran los usuarios registrados y los grupos a los que se pertenece
+    lobby_window = tk.Tk()
+    lobby_window.geometry("300x150")
+    lobby_window.title(f"{user}'s Lobby")
 
     # Crear un widget Canvas
-    canvas = tk.Canvas(groups_view_window)
+    canvas = tk.Canvas(lobby_window)
     # Crear un frame dentro del Canvas para contener los botones
     frame = tk.Frame(canvas)
     frame.pack(side=tk.RIGHT, fill=tk.X)
@@ -171,25 +174,169 @@ def create_groups_view_window(btn_function, user):
     canvas.create_window((0, 0), window=frame, anchor=tk.NW)
     
     canvas.configure(yscrollcommand = scrollbar.set)
+
+    num_users = 10
+    usernames = []
+
+    while num_users > 0:    # simulador de usuarios registrados, se ejecutará esta linea cuando ya se tengan los usuarios en un archivo*
+                            # *(archivo que pueda leer el cliente, no los usuarios del servidor)
+        usernames.append(tk.Label(frame, text=(f"User{num_users}")))
+        num_users -= 1
     
-    existing_groups = 20 # send_to_server(user,'ignore', btn_function)
+    for username in usernames:
+        username.pack(pady = 2)
+    
+    existing_groups = 20 # simulador de grupos, se ejecutará esta linea cuando ya se tengan los grupos en un archivo
     buttons = []
     group_num = 1
-    while(existing_groups > 0):
+    while(existing_groups > 0): # los grupos se muestran como botones, cuando das click a uno te abre la ventana del chatroom de ese grupo
         buttons.append(tk.Button(frame, text=f"group {group_num} (1 nueva)" ))
         existing_groups -= 1
         group_num += 1
 
     for button in buttons:
-        button['command'] = lambda: send_to_server(user, f"{button.cget('text')}", "Enter Group")
+        groupname = button.cget('text').split('(')
+        button['command'] = lambda: [send_to_server(user, f"{groupname[0]}", "Enter Group"), create_chatroom_window(user, f"{groupname[0]}"),
+                                     lobby_window.destroy()]
         button.pack(pady = 2)
 
     frame.update_idletasks()  # Actualizar el tamaño del frame interior
     canvas.config(scrollregion=canvas.bbox("all")) # Configurar el tamaño del Canvas
 
-    # Empaquetar el widget Canvas
+    button_back = tk.Button(lobby_window, text="Back", 
+                                command = lambda: [create_users_options_window(user, 'accept', lobby_window)])
+    button_requests = tk.Button(lobby_window, text="Members requests", 
+                                command = lambda: [create_requests_window(user), lobby_window.destroy()])
+    button_requests.pack()
+    button_back.pack()
+
+def create_requests_window(user):   # ventana para ver las solicitudes de usuarios que quieren entrar a grupos
+    # Crea la nueva ventana
+    requests_window = tk.Tk()
+    requests_window.geometry("300x150")
+    requests_window.title('Requests')
+
+    # Crear un widget Canvas
+    canvas = tk.Canvas(requests_window)
+    # Crear un frame dentro del Canvas para contener los botones
+    frame = tk.Frame(canvas)
+    frame.pack(side=tk.RIGHT, fill=tk.X)
+
+    # Agregar un scrollbar al Canvas
+    scrollbar = ttk.Scrollbar(canvas, orient=tk.VERTICAL, command=canvas.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+    canvas.create_window((0, 0), window=frame, anchor=tk.NW)
     
-#------------------------------------------------------------------------------------------------------------------------------------  
+    canvas.configure(yscrollcommand = scrollbar.set)
+
+    num_requests = 10
+    requests = []
+    buttons = []
+
+    while num_requests > 0: # simulador de solicitudes
+        requests.append(tk.Label(frame, text=(f"member{num_requests} wants to join to groupname")))
+        buttons.append([tk.Button(frame, text=f"Accept"), tk.Button(frame, text=f"Reject")])
+        num_requests -= 1
+    
+    for request in requests:  
+        request.pack(pady = 2)
+        buttons[num_requests][0].pack(pady = 2)
+        buttons[num_requests][1].pack(pady = 2)
+        num_requests += 1
+
+
+    button_back = tk.Button(requests_window, text="Back", command = lambda: [create_lobby_window(user), requests_window.destroy()])
+    button_back.pack()
+
+    frame.update_idletasks()  # Actualizar el tamaño del frame interior
+    canvas.config(scrollregion=canvas.bbox("all")) # Configurar el tamaño del Canvas
+
+
+def create_chatroom_window(user, groupname): # ventana del chatroom, donde lees mensajes y pueder mandar mensajes
+    chatroom_window = tk.Tk()
+    chatroom_window.geometry("300x150")
+    chatroom_window.title(groupname)
+    #------------------------- rol de usuario------------------------------------------------------------------------------------
+    admin = True   # si es true, mostrará un boton para ver todos los miembros del grupo
+
+    # Crear un widget Canvas
+    canvas = tk.Canvas(chatroom_window)
+    # Crear un frame dentro del Canvas para contener los botones
+    frame = tk.Frame(canvas)
+    frame.pack(side=tk.RIGHT, fill=tk.X)
+
+    # Agregar un scrollbar al Canvas
+    scrollbar = ttk.Scrollbar(canvas, orient=tk.VERTICAL, command=canvas.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+    canvas.create_window((0, 0), window=frame, anchor=tk.NW)
+    
+    canvas.configure(yscrollcommand = scrollbar.set)
+
+    num_messages = 20
+    messages = []
+
+    while num_messages > 0: # simulador de mensajes, se ejecutará esta linea cuando ya se tengan los mensajes en un archivo
+        messages.append(tk.Label(frame, text=(f"This is the message number {num_messages}")))
+        num_messages -= 1
+
+    for message in messages:
+        message.pack(pady = 2)
+
+    entry_message = tk.Entry(frame) 
+    button_send = tk.Button(frame, text="Send", command = lambda: [send_to_server(user, entry_message.get(), "Send message")])
+    button_back = tk.Button(chatroom_window, text="Back", command = lambda: [create_lobby_window(user), chatroom_window.destroy()])
+    entry_message.pack()
+    button_send.pack()
+    frame.update_idletasks()  # Actualizar el tamaño del frame interior
+    canvas.config(scrollregion=canvas.bbox("all")) # Configurar el tamaño del Canvas
+    if admin == True:   # si es admin, llama a la función para crear una ventana donde se muestran los membros del grupo
+        button_members = tk.Button(chatroom_window, text="View Members", command = lambda: [create_group_members_window(user, groupname), 
+                                                                                            chatroom_window.destroy()])
+        button_members.pack()
+    button_back.pack()
+        
+def create_group_members_window(user, groupname): # ventana donde si eres admin, muestra los miembros de tu grupo
+    groupmembers_window = tk.Tk()
+    groupmembers_window.geometry("300x150")
+    groupmembers_window.title(groupname)
+
+    # Crear un widget Canvas
+    canvas = tk.Canvas(groupmembers_window)
+    # Crear un frame dentro del Canvas para contener los botones
+    frame = tk.Frame(canvas)
+    frame.pack(side=tk.RIGHT, fill=tk.X)
+
+    # Agregar un scrollbar al Canvas
+    scrollbar = ttk.Scrollbar(canvas, orient=tk.VERTICAL, command=canvas.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+    canvas.create_window((0, 0), window=frame, anchor=tk.NW)
+    
+    canvas.configure(yscrollcommand = scrollbar.set)
+
+    num_members = 10
+    members = []
+
+    while num_members > 0:
+        members.append(tk.Label(frame, text=(f"member{num_members}")))
+        num_members -= 1
+    
+    for member in members:
+        member.pack(pady = 2)
+
+    button_back = tk.Button(groupmembers_window, text="Back", command = lambda: [create_chatroom_window(user, groupname), 
+                                                                                 groupmembers_window.destroy()])
+    button_back.pack()
+
+    frame.update_idletasks()  # Actualizar el tamaño del frame interior
+    canvas.config(scrollregion=canvas.bbox("all")) # Configurar el tamaño del Canvas
+        
+#-------------------------------------------------------------------------------------------------------------------------------------------------  
 
 create_main_window() # Ejecuta el bucle principal de la ventana, Aquí empieza el programa
 

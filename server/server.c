@@ -223,7 +223,7 @@ int join_group(char *user, char *group)
         char buffer[MAX_LENGTH];
         while (fgets(buffer, MAX_LENGTH, fp))
         {
-            replace_char(buffer, "\n", "\0");
+            replace_char(buffer, '\n', '\0');
             if (strcmp(buffer, user) == 0)
                 return FAIL;
         }

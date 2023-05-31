@@ -292,11 +292,7 @@ int enter_group(char *user, char *group, int client_socket)
 
     FILE *cnv_fp = fopen(cnv_file, "r+");
 
-    int server_socket;
-    char *req;
-
     char buffer[MAX_LENGTH];
-    rewind(cnv_fp);
     while (fgets(buffer, MAX_LENGTH, cnv_fp))
     {
         printf("%s", buffer);

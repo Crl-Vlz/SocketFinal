@@ -426,6 +426,7 @@ def create_chatroom_window(
         if response.decode() == "finish":
             break
         arr = arr + response.decode().split("\n")
+        print(arr)
     for i in range(len(arr)):
         if (
             arr[i] != "\x11\x16\x11"

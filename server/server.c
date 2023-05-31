@@ -131,7 +131,8 @@ int add_user(char *user, char *key, FILE *file)
     sprintf(userkey, "%s:%s", user, key);
     rewind(file);
     // Change this to only look for user
-    while (fgets(buffer, MAX_LENGTH, file)){
+    while (fgets(buffer, MAX_LENGTH, file))
+    {
         replace_char(buffer, '\n', '\0');
         if (strcmp(buffer, userkey) == 0)
             return FAIL;
@@ -156,7 +157,8 @@ int check_user(char *user, char *key, FILE *file)
     sprintf(userkey, "%s:%s", user, key);
     rewind(file);
     // Add validation for error in password
-    while (fgets(buffer, MAX_LENGTH, file)){
+    while (fgets(buffer, MAX_LENGTH, file))
+    {
         replace_char(buffer, '\n', '\0');
         if (strcmp(buffer, userkey) == 0)
         {
@@ -177,7 +179,7 @@ int make_group(char *user, char *group)
 {
     FILE *grp_file;
     char buffer[MAX_LENGTH];
-    char *userp = malloc((strlen(user) + 2) * sizeof(char)); // +2 para incluir el salto de línea y el terminador nulo
+    char *userp = malloc((strlen(user) + 2) * sizeof(char));   // +2 para incluir el salto de línea y el terminador nulo
     char *groupp = malloc((strlen(group) + 2) * sizeof(char)); // +2 para incluir el salto de línea y el terminador nulo
 
     sprintf(userp, "%s:admin\n", user);
@@ -234,7 +236,7 @@ int join_group(char *user, char *group)
         }
         fputs(usep, fp);
         fclose(fp);
-        
+
         printf("%s", group);
         printf("%s", groupp);
         fp = fopen(userfile, "a+");
@@ -248,7 +250,8 @@ int join_group(char *user, char *group)
     }
 }
 
-int create_socket() {
+int create_socket()
+{
     int new_socket;
     if ((new_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
@@ -258,14 +261,16 @@ int create_socket() {
     return new_socket;
 }
 
-int see_groups(char *user, char *group, int client_socket) {
+int see_groups(char *user, char *group, int client_socket)
+{
     char group_file[MAX_LENGTH];
     sprintf(group_file, "%s.grp", user);
     FILE *fp = fopen(group_file, "r+");
     int server_socket;
     char *req;
 
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         return FAIL;
     }
 
@@ -280,29 +285,27 @@ int see_groups(char *user, char *group, int client_socket) {
     return SUCCESS;
 }
 
-int enter_group(char *user, char *group, int client_socket) {
+int enter_group(char *user, char *group, int client_socket)
+{
     char cnv_file[MAX_LENGTH];
     sprintf(cnv_file, "%s.cnv", group);
 
     FILE *cnv_fp = fopen(cnv_file, "r+");
 
-    int server_socket;
-    char *req;
-
     char buffer[MAX_LENGTH];
-    rewind(cnv_fp);
     while (fgets(buffer, MAX_LENGTH, cnv_fp))
     {
         printf("%s", buffer);
         send(client_socket, buffer, strlen(buffer), 0);
-        //memset(buffer, 0, sizeof(buffer));
+        // memset(buffer, 0, sizeof(buffer));
     }
     send(client_socket, "finish", strlen("finish"), 0);
     fclose(cnv_fp);
     return SUCCESS;
 }
 
-int send_message(char *user, char *group, char *message) {
+int send_message(char *user, char *group, char *message)
+{
     char buffer[MAX_LENGTH];
     sprintf(buffer, "%s.cnv", group);
 
@@ -351,13 +354,15 @@ int manage_user_request(char *req, FILE *file, int client_socket)
     req = XORCipher(req, KEY);
     printf("%s\n", req);
     // Code for split by ':' character
-    for (int i = 0; i < strlen(req); i++) {
-        if (req[i] == ':') {
+    for (int i = 0; i < strlen(req); i++)
+    {
+        if (req[i] == ':')
+        {
             strcpy(parts[dest], buffer);
             dest++;
             memset(buffer, 0, sizeof(buffer));
             j = 0;
-            buffer[j] = 0;  // Null-terminate the buffer
+            buffer[j] = 0; // Null-terminate the buffer
             continue;
         }
         buffer[j++] = req[i];
@@ -368,7 +373,7 @@ int manage_user_request(char *req, FILE *file, int client_socket)
     strcpy(user, parts[0]);
     strcpy(pass, parts[1]);
     int op = atoi(&parts[2][0]);
-    if (dest == 3) 
+    if (dest == 3)
         strcpy(message, parts[3]);
     switch (atoi(&parts[2][0]))
     {

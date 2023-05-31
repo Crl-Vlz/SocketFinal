@@ -53,7 +53,7 @@ def send_to_server(username, data, operation):
     finally:
         # Cierra la conexion
         client_socket.close()
-        if response != "accept":
+        if response != "accept" and operation != 5 :
             messagebox.showwarning("Error", "Wrong username or password")
         return response
 
@@ -149,6 +149,11 @@ def create_main_window():
     button_signup.pack()
     main_window.mainloop()
 
+def see_lobby(client_socket, username, data, operation):
+    message = f"{username}:{data}:{operation}"
+    print(message)
+    message = encryption(message)
+    client_socket.sendall(message.encode())
 
 def create_users_options_window(
     user, auth, users_window
@@ -234,15 +239,23 @@ def create_groups_options_window(
     button_action.pack()
     button_back.pack()
 
+def see_chat(username, data, operation):
+    client_socket = create_socket()
+    message = f"{username}:{data}:{operation}"
+    print(message)
+    message = encryption(message)
+    client_socket.sendall(message.encode()) # type: ignore
+    client_socket.close() # type: ignore
 
-def create_lobby_window(
-    user,
-):  # ventana del lobby, donde se muestran los usuarios registrados y los grupos a los que se pertenece
+
+def create_lobby_window(user):  # ventana del lobby, donde se muestran los usuarios registrados y los grupos a los que se pertenece
     lobby_window = tk.Tk()
     lobby_window.geometry("300x150")
     lobby_window.title(f"{user}'s Lobby")
     client_socket = create_socket()
 
+    see_lobby(client_socket, user, "", 5)
+    
     # Crear un widget Canvas
     canvas = tk.Canvas(lobby_window)
     # Crear un frame dentro del Canvas para contener los botones
@@ -257,38 +270,31 @@ def create_lobby_window(
     canvas.create_window((0, 0), window=frame, anchor=tk.NW)
 
     canvas.configure(yscrollcommand=scrollbar.set)
-
-    num_users = 10
-    usernames = []
-
-    # while (
-    #     num_users > 0
-    # ):  # simulador de usuarios registrados, se ejecutará esta linea cuando ya se tengan los usuarios en un archivo*
-    #     # *(archivo que pueda leer el cliente, no los usuarios del servidor)
-    #     usernames.append(tk.Label(frame, text=(f"User{num_users}")))
-    #     num_users -= 1
-
-    # for username in usernames:
-    #     username.pack(pady=2)
-
+    
     #existing_groups = 20  # simulador de grupos, se ejecutará esta linea cuando ya se tengan los grupos en un archivo
     buttons = []
     response = ""
-    while (response != "finish"):  # los grupos se muestran como botones, cuando das click a uno te abre la ventana del chatroom de ese grupo
-        
-        response = client_socket.recv(1024)
-        response = encryption(response.decode())
-        buttons.append(tk.Button(frame, text=f"{response}"))
-        
+    # los grupos se muestran como botones, cuando das click a uno te abre la ventana del chatroom de ese grupo
+    response = client_socket.recv(1024)
+    arr = response.decode().split()
+    print(arr)
+    for i in range(len(arr)):
+        if arr[i] != '\x11\x16\x11' and arr[i] != 'p':
+            buttons.append(tk.Button(frame, text=f"{arr[i]}"))
+
     client_socket.close()
 
     for button in buttons:
         groupname = button.cget("text").split("(")
-        button["command"] = lambda: [
-            send_to_server(user, f"{groupname[0]}", "Enter Group"),
-            create_chatroom_window(user, f"{groupname[0]}"),
-            lobby_window.destroy(),
-        ]
+        
+        # Utilizar una función de fábrica para crear una lambda con su propia copia de groupname
+        def create_lambda(group):
+            return lambda: [
+                create_chatroom_window(user, f"{group[0]}"),
+                lobby_window.destroy(),
+            ]
+    
+        button["command"] = create_lambda(groupname)
         button.pack(pady=2)
 
     frame.update_idletasks()  # Actualizar el tamaño del frame interior
@@ -360,15 +366,23 @@ def create_requests_window(
     frame.update_idletasks()  # Actualizar el tamaño del frame interior
     canvas.config(scrollregion=canvas.bbox("all"))  # Configurar el tamaño del Canvas
 
+def see_msg(username, data, operation, msg):
+    client_socket = create_socket()
+    message = f"{username}:{data}:{operation}"
+    print(message)
+    message = encryption(message)
+    client_socket.sendall(message.encode())
+    client_socket.close()
 
-def create_chatroom_window(
-    user, groupname
-):  # ventana del chatroom, donde lees mensajes y pueder mandar mensajes
+def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees mensajes y pueder mandar mensajes
     chatroom_window = tk.Tk()
     chatroom_window.geometry("300x150")
     chatroom_window.title(groupname)
     # ------------------------- rol de usuario------------------------------------------------------------------------------------
     admin = True  # si es true, mostrará un boton para ver todos los miembros del grupo
+
+    client_socket = create_socket()
+    see_lobby(client_socket, user, groupname, 6)
 
     # Crear un widget Canvas
     canvas = tk.Canvas(chatroom_window)
@@ -384,26 +398,26 @@ def create_chatroom_window(
     canvas.create_window((0, 0), window=frame, anchor=tk.NW)
 
     canvas.configure(yscrollcommand=scrollbar.set)
+    
+    msgs = []
+    response = ""
+    response = client_socket.recv(1024)
+    arr = response.decode().split('\n')
+    print(arr)
+    for i in range(len(arr)):
+        if arr[i] != '\x11\x16\x11' and arr[i] != 'p' and arr[i] != 'p\x1d' and arr[i] != "":
+            msg = arr[i].split(':')
+            msgs.append(tk.Label(frame, text=(f"{msg}")))
 
-    num_messages = 20
-    messages = []
-
-    while (
-        num_messages > 0
-    ):  # simulador de mensajes, se ejecutará esta linea cuando ya se tengan los mensajes en un archivo
-        messages.append(
-            tk.Label(frame, text=(f"This is the message number {num_messages}"))
-        )
-        num_messages -= 1
-
-    for message in messages:
+    client_socket.close()
+    for message in msgs:
         message.pack(pady=2)
 
     entry_message = tk.Entry(frame)
     button_send = tk.Button(
         frame,
         text="Send",
-        command=lambda: [send_to_server(user, entry_message.get(), "Send message")],
+        command=lambda: [create_chatroom_window(user, groupname), chatroom_window.destroy()]#[see_msg(user,groupname, 7, entry_message.get())],
     )
     button_back = tk.Button(
         chatroom_window,

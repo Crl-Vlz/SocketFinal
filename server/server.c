@@ -261,7 +261,7 @@ int create_socket() {
 int see_groups(char *user, char *group, int client_socket) {
     char group_file[MAX_LENGTH];
     sprintf(group_file, "%s.grp", user);
-    FILE *fp = fopen(group_file, "r");
+    FILE *fp = fopen(group_file, "r+");
     int server_socket;
     char *req;
 
@@ -284,14 +284,10 @@ int enter_group(char *user, char *group, int client_socket) {
     char cnv_file[MAX_LENGTH];
     sprintf(cnv_file, "%s.cnv", group);
 
-    FILE *cnv_fp = fopen(cnv_file, "r");
+    FILE *cnv_fp = fopen(cnv_file, "r+");
 
     int server_socket;
     char *req;
-
-    if (cnv_fp == NULL) {
-        return FAIL;
-    }
 
     char buffer[MAX_LENGTH];
     rewind(cnv_fp);
@@ -299,19 +295,22 @@ int enter_group(char *user, char *group, int client_socket) {
     {
         printf("%s", buffer);
         send(client_socket, buffer, strlen(buffer), 0);
+        //memset(buffer, 0, sizeof(buffer));
     }
+    send(client_socket, "finish", strlen("finish"), 0);
     fclose(cnv_fp);
     return SUCCESS;
 }
 
 int send_message(char *user, char *group, char *message) {
-    printf("dhuehuhdcdihfiurhfrk");
     char buffer[MAX_LENGTH];
     sprintf(buffer, "%s.cnv", group);
 
-    FILE *fp = fopen(buffer, "a");
-    char *msg;
+    FILE *fp = fopen(buffer, "a+");
+
+    char msg[MAX_LENGTH];
     sprintf(msg, "%s:%s\n", user, message);
+    printf("%s", msg);
     fputs(msg, fp);
     fclose(fp);
 
@@ -341,7 +340,7 @@ void send_conversations(char *group, char *message, char *user)
  */
 int manage_user_request(char *req, FILE *file, int client_socket)
 {
-    char parts[3][MAX_LENGTH];
+    char parts[4][MAX_LENGTH];
     char buffer[MAX_LENGTH];
     char user[MAX_LENGTH];
     char pass[MAX_LENGTH];
@@ -352,33 +351,25 @@ int manage_user_request(char *req, FILE *file, int client_socket)
     req = XORCipher(req, KEY);
     printf("%s\n", req);
     // Code for split by ':' character
-    printf("ggggggggggg");
     for (int i = 0; i < strlen(req); i++) {
-        printf("aaaaaaaaaaaaa");
         if (req[i] == ':') {
-            printf("bbbbbbbbbbbbb");
             strcpy(parts[dest], buffer);
             dest++;
             memset(buffer, 0, sizeof(buffer));
             j = 0;
             buffer[j] = 0;  // Null-terminate the buffer
-            printf("ccccccccccccc");
             continue;
         }
         buffer[j++] = req[i];
         buffer[j] = 0;
     }
-    printf("ggggggggggg");
+    memset(req, 0, sizeof(req));
     strcpy(parts[dest], buffer);
-    printf("aaaaaaaaaaaaa");
     strcpy(user, parts[0]);
-    printf("bbbbbbbbbbbbb");
     strcpy(pass, parts[1]);
-    printf("ccccccccccccc");
     int op = atoi(&parts[2][0]);
-    printf("ddddddddddddd");
-    // if (dest == 4) 
-    //     strcpy(message, parts[3]);
+    if (dest == 3) 
+        strcpy(message, parts[3]);
     switch (atoi(&parts[2][0]))
     {
     case 1:
@@ -400,7 +391,7 @@ int manage_user_request(char *req, FILE *file, int client_socket)
         return enter_group(user, pass, client_socket);
         break;
     case 7:
-        return send_message(user, pass, "buenassss");
+        return send_message(user, pass, message);
         break;
     default:
         printf("Code error\n");

@@ -277,7 +277,6 @@ def create_lobby_window(user):  # ventana del lobby, donde se muestran los usuar
     # los grupos se muestran como botones, cuando das click a uno te abre la ventana del chatroom de ese grupo
     response = client_socket.recv(1024)
     arr = response.decode().split()
-    print(arr)
     for i in range(len(arr)):
         if arr[i] != '\x11\x16\x11' and arr[i] != 'p':
             buttons.append(tk.Button(frame, text=f"{arr[i]}"))
@@ -368,11 +367,11 @@ def create_requests_window(
 
 def see_msg(username, data, operation, msg):
     client_socket = create_socket()
-    message = f"{username}:{data}:{operation}"
+    message = f"{username}:{data}:{operation}:{msg}"
     print(message)
     message = encryption(message)
-    client_socket.sendall(message.encode())
-    client_socket.close()
+    client_socket.sendall(message.encode()) # type: ignore
+    client_socket.close() # type: ignore
 
 def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees mensajes y pueder mandar mensajes
     chatroom_window = tk.Tk()
@@ -400,14 +399,17 @@ def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees
     canvas.configure(yscrollcommand=scrollbar.set)
     
     msgs = []
+    arr = []
     response = ""
-    response = client_socket.recv(1024)
-    arr = response.decode().split('\n')
-    print(arr)
+    for i in range(100):
+        response = client_socket.recv(1024)
+        if response.decode() == "finish":
+            break
+        arr = arr + response.decode().split('\n')
     for i in range(len(arr)):
         if arr[i] != '\x11\x16\x11' and arr[i] != 'p' and arr[i] != 'p\x1d' and arr[i] != "":
             msg = arr[i].split(':')
-            msgs.append(tk.Label(frame, text=(f"{msg}")))
+            msgs.append(tk.Label(frame, text=(f"{msg[0]}:{msg[1]}")))
 
     client_socket.close()
     for message in msgs:
@@ -417,12 +419,17 @@ def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees
     button_send = tk.Button(
         frame,
         text="Send",
-        command=lambda: [create_chatroom_window(user, groupname), chatroom_window.destroy()]#[see_msg(user,groupname, 7, entry_message.get())],
+        command=lambda: [see_msg(user, groupname, 7, entry_message.get())],
     )
     button_back = tk.Button(
         chatroom_window,
         text="Back",
         command=lambda: [create_lobby_window(user), chatroom_window.destroy()],
+    )
+    button_refr = tk.Button(
+        chatroom_window,
+        text="Refresh",
+        command=lambda: [chatroom_window.destroy(),create_chatroom_window(user, f"{groupname}")],
     )
     entry_message.pack()
     button_send.pack()
@@ -441,6 +448,7 @@ def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees
         )
         button_members.pack()
     button_back.pack()
+    button_refr.pack()
 
 
 def create_group_members_window(

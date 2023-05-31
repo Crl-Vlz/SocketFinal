@@ -4,13 +4,24 @@ from tkinter import messagebox
 
 import socket
 
+
+def make_socket(ip: str, port: int):
+    try:
+        # Crea un socket TCP/IP
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print(f"Attempting to connect to {ip}:{port}")
+        # Conecta el cliente al servidor en la direccion y puerto especificados
+        client_socket.connect((ip, port))
+        return client_socket
+    except ConnectionRefusedError:
+        return None
+
+
 def create_socket():
     # Crea un socket TCP/IP
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Conecta el cliente al servidor en la direccion y puerto especificados
-    server_address = ("172.18.2.2", 5000)
-    client_socket.connect(server_address)
+    client_socket = make_socket("172.18.2.2", 5000)
+    if not client_socket:
+        client_socket = make_socket("172.18.2.2", 5001)
     return client_socket
 
 
@@ -53,7 +64,7 @@ def send_to_server(username, data, operation):
     finally:
         # Cierra la conexion
         client_socket.close()
-        if response != "accept" and operation != 5 :
+        if response != "accept" and operation != 5:
             messagebox.showwarning("Error", "Wrong username or password")
         return response
 
@@ -149,11 +160,13 @@ def create_main_window():
     button_signup.pack()
     main_window.mainloop()
 
+
 def see_lobby(client_socket, username, data, operation):
     message = f"{username}:{data}:{operation}"
     print(message)
     message = encryption(message)
     client_socket.sendall(message.encode())
+
 
 def create_users_options_window(
     user, auth, users_window
@@ -239,23 +252,26 @@ def create_groups_options_window(
     button_action.pack()
     button_back.pack()
 
+
 def see_chat(username, data, operation):
     client_socket = create_socket()
     message = f"{username}:{data}:{operation}"
     print(message)
     message = encryption(message)
-    client_socket.sendall(message.encode()) # type: ignore
-    client_socket.close() # type: ignore
+    client_socket.sendall(message.encode())  # type: ignore
+    client_socket.close()  # type: ignore
 
 
-def create_lobby_window(user):  # ventana del lobby, donde se muestran los usuarios registrados y los grupos a los que se pertenece
+def create_lobby_window(
+    user,
+):  # ventana del lobby, donde se muestran los usuarios registrados y los grupos a los que se pertenece
     lobby_window = tk.Tk()
     lobby_window.geometry("300x150")
     lobby_window.title(f"{user}'s Lobby")
     client_socket = create_socket()
 
     see_lobby(client_socket, user, "", 5)
-    
+
     # Crear un widget Canvas
     canvas = tk.Canvas(lobby_window)
     # Crear un frame dentro del Canvas para contener los botones
@@ -270,29 +286,29 @@ def create_lobby_window(user):  # ventana del lobby, donde se muestran los usuar
     canvas.create_window((0, 0), window=frame, anchor=tk.NW)
 
     canvas.configure(yscrollcommand=scrollbar.set)
-    
-    #existing_groups = 20  # simulador de grupos, se ejecutará esta linea cuando ya se tengan los grupos en un archivo
+
+    # existing_groups = 20  # simulador de grupos, se ejecutará esta linea cuando ya se tengan los grupos en un archivo
     buttons = []
     response = ""
     # los grupos se muestran como botones, cuando das click a uno te abre la ventana del chatroom de ese grupo
     response = client_socket.recv(1024)
     arr = response.decode().split()
     for i in range(len(arr)):
-        if arr[i] != '\x11\x16\x11' and arr[i] != 'p':
+        if arr[i] != "\x11\x16\x11" and arr[i] != "p":
             buttons.append(tk.Button(frame, text=f"{arr[i]}"))
 
     client_socket.close()
 
     for button in buttons:
         groupname = button.cget("text").split("(")
-        
+
         # Utilizar una función de fábrica para crear una lambda con su propia copia de groupname
         def create_lambda(group):
             return lambda: [
                 create_chatroom_window(user, f"{group[0]}"),
                 lobby_window.destroy(),
             ]
-    
+
         button["command"] = create_lambda(groupname)
         button.pack(pady=2)
 
@@ -365,15 +381,19 @@ def create_requests_window(
     frame.update_idletasks()  # Actualizar el tamaño del frame interior
     canvas.config(scrollregion=canvas.bbox("all"))  # Configurar el tamaño del Canvas
 
+
 def see_msg(username, data, operation, msg):
     client_socket = create_socket()
     message = f"{username}:{data}:{operation}:{msg}"
     print(message)
     message = encryption(message)
-    client_socket.sendall(message.encode()) # type: ignore
-    client_socket.close() # type: ignore
+    client_socket.sendall(message.encode())  # type: ignore
+    client_socket.close()  # type: ignore
 
-def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees mensajes y pueder mandar mensajes
+
+def create_chatroom_window(
+    user, groupname
+):  # ventana del chatroom, donde lees mensajes y pueder mandar mensajes
     chatroom_window = tk.Tk()
     chatroom_window.geometry("300x150")
     chatroom_window.title(groupname)
@@ -397,7 +417,7 @@ def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees
     canvas.create_window((0, 0), window=frame, anchor=tk.NW)
 
     canvas.configure(yscrollcommand=scrollbar.set)
-    
+
     msgs = []
     arr = []
     response = ""
@@ -405,10 +425,15 @@ def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees
         response = client_socket.recv(1024)
         if response.decode() == "finish":
             break
-        arr = arr + response.decode().split('\n')
+        arr = arr + response.decode().split("\n")
     for i in range(len(arr)):
-        if arr[i] != '\x11\x16\x11' and arr[i] != 'p' and arr[i] != 'p\x1d' and arr[i] != "":
-            msg = arr[i].split(':')
+        if (
+            arr[i] != "\x11\x16\x11"
+            and arr[i] != "p"
+            and arr[i] != "p\x1d"
+            and arr[i] != ""
+        ):
+            msg = arr[i].split(":")
             msgs.append(tk.Label(frame, text=(f"{msg[0]}:{msg[1]}")))
 
     client_socket.close()
@@ -429,7 +454,10 @@ def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees
     button_refr = tk.Button(
         chatroom_window,
         text="Refresh",
-        command=lambda: [chatroom_window.destroy(),create_chatroom_window(user, f"{groupname}")],
+        command=lambda: [
+            chatroom_window.destroy(),
+            create_chatroom_window(user, f"{groupname}"),
+        ],
     )
     entry_message.pack()
     button_send.pack()

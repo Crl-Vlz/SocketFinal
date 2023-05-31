@@ -246,6 +246,88 @@ int join_group(char *user, char *group)
     }
 }
 
+int see_groups(char *user, char *group) {
+    char group_file[MAX_LENGTH];
+    sprintf(group_file, "%s.usr", group);
+    FILE *fp = fopen(group_file, "r");
+
+    if (fp == NULL) {
+        return FAIL;
+    }
+
+    printf("Members of group '%s':\n", group);
+
+    char buffer[MAX_LENGTH];
+    while (fgets(buffer, MAX_LENGTH, fp))
+    {
+        printf("- %s", buffer);
+    }
+
+    fclose(fp);
+    return SUCCESS;
+}
+
+int enter_group(char *user, char *group) {
+    char user_file[MAX_LENGTH];
+    char group_file[MAX_LENGTH];
+    sprintf(user_file, "%s.grp", user);
+    sprintf(group_file, "%s.usr", group);
+
+    if (access(user_file, F_OK) == 0 && access(group_file, F_OK) == 0)
+    {
+        FILE *user_fp = fopen(user_file, "r");
+        FILE *group_fp = fopen(group_file, "r");
+
+        if (user_fp == NULL || group_fp == NULL)
+        {
+            fclose(user_fp);
+            fclose(group_fp);
+            return FAIL;
+        }
+
+        char user_buffer[MAX_LENGTH];
+        char group_buffer[MAX_LENGTH];
+        while (fgets(user_buffer, MAX_LENGTH, user_fp))
+        {
+            replace_char(user_buffer, '\n', '\0');
+            while (fgets(group_buffer, MAX_LENGTH, group_fp))
+            {
+                replace_char(group_buffer, '\n', '\0');
+                if (strcmp(user_buffer, group_buffer) == 0)
+                {
+                    fclose(user_fp);
+                    fclose(group_fp);
+                    free(user);
+                    free(group);
+                    return SUCCESS;
+                }
+            }
+            rewind(group_fp);
+        }
+
+        fclose(user_fp);
+        fclose(group_fp);
+    }
+
+    return FAIL;
+}
+
+int send_message(char *user, char *group, char *message) {
+    char group_file[MAX_LENGTH];
+    sprintf(group_file, "%s.cnv", group);
+
+    FILE *fp = fopen(group_file, "a");
+    if (fp == NULL)
+    {
+        return FAIL;
+    }
+
+    fprintf(fp, "%s: %s\n", user, message);
+    fclose(fp);
+
+    return SUCCESS;
+}
+
 /*
  * Adds a message to the group conversation file of a specific group
  * param group: Name of the group
@@ -273,6 +355,7 @@ int manage_user_request(char *req, FILE *file)
     char buffer[MAX_LENGTH];
     char user[MAX_LENGTH];
     char pass[MAX_LENGTH];
+    char message[MAX_LENGTH];
     int dest = 0;
     int j = 0;
     printf("%s\n", req);
@@ -312,12 +395,14 @@ int manage_user_request(char *req, FILE *file)
         return make_group(user, pass);
         break;
     case 5:
-        printf("%d\n", op);
-        return 0;
+        see_groups(user, pass);
         break;
     case 6:
-        printf("%d\n", op);
-        return 0;
+        enter_group(user, pass);
+        break;
+    case 7:
+        strcpy(message, parts[3]);
+        send_message(user, pass, message);
         break;
     default:
         printf("Code error\n");

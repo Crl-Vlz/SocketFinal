@@ -291,13 +291,14 @@ int enter_group(char *user, char *group, int client_socket) {
 
     char buffer[MAX_LENGTH];
     rewind(cnv_fp);
+    char *msgs = "";
     while (fgets(buffer, MAX_LENGTH, cnv_fp))
     {
         printf("%s", buffer);
-        send(client_socket, buffer, strlen(buffer), 0);
-        //memset(buffer, 0, sizeof(buffer));
+        msgs = strcat(msgs,buffer);
+        
     }
-    send(client_socket, "finish", strlen("finish"), 0);
+    send(client_socket, msgs, strlen(msgs), 0);
     fclose(cnv_fp);
     return SUCCESS;
 }
@@ -307,14 +308,16 @@ int send_message(char *user, char *group, char *message) {
     sprintf(buffer, "%s.cnv", group);
 
     FILE *fp = fopen(buffer, "a+");
+    if (fp == NULL) {
+        printf("No se pudo abrir el archivo.\n");
+        return -1; // Otra constante o código de error adecuado según tu contexto
+    }
 
     char msg[MAX_LENGTH];
     sprintf(msg, "%s:%s\n", user, message);
     printf("%s", msg);
     fputs(msg, fp);
     fclose(fp);
-
-    return SUCCESS;
 }
 
 /*
@@ -363,7 +366,6 @@ int manage_user_request(char *req, FILE *file, int client_socket)
         buffer[j++] = req[i];
         buffer[j] = 0;
     }
-    memset(req, 0, sizeof(req));
     strcpy(parts[dest], buffer);
     strcpy(user, parts[0]);
     strcpy(pass, parts[1]);

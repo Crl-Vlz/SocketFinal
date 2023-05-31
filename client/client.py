@@ -399,13 +399,13 @@ def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees
     canvas.configure(yscrollcommand=scrollbar.set)
     
     msgs = []
-    arr = []
-    response = ""
-    for i in range(100):
-        response = client_socket.recv(1024)
-        if response.decode() == "finish":
-            break
-        arr = arr + response.decode().split('\n')
+    
+    response = client_socket.recv(1024)
+
+    arrt = response.decode()
+    print(arrt)
+    arr = arrt.split('\n')
+    print(arr)
     for i in range(len(arr)):
         if arr[i] != '\x11\x16\x11' and arr[i] != 'p' and arr[i] != 'p\x1d' and arr[i] != "":
             msg = arr[i].split(':')
@@ -419,7 +419,7 @@ def create_chatroom_window(user, groupname):  # ventana del chatroom, donde lees
     button_send = tk.Button(
         frame,
         text="Send",
-        command=lambda: [see_msg(user, groupname, 7, entry_message.get())],
+        command=lambda: [see_msg(user,groupname, 7, entry_message.get()),create_chatroom_window(user, groupname), chatroom_window.destroy()]#
     )
     button_back = tk.Button(
         chatroom_window,

@@ -128,12 +128,14 @@ int add_user(char *user, char *key, FILE *file)
 {
     char buffer[MAX_LENGTH];
     char userkey[MAX_LENGTH];
-    sprintf(userkey, "%s:%s\n", user, key);
+    sprintf(userkey, "%s:%s", user, key);
     rewind(file);
     // Change this to only look for user
-    while (fgets(buffer, MAX_LENGTH, file))
+    while (fgets(buffer, MAX_LENGTH, file)){
+        replace_char(buffer, '\n', '\0');
         if (strcmp(buffer, userkey) == 0)
             return FAIL;
+    }
     sprintf(userkey, "\n%s:%s", user, key);
     fputs(userkey, file);
     return SUCCESS;
@@ -151,15 +153,17 @@ int check_user(char *user, char *key, FILE *file)
     char buffer[MAX_LENGTH];
     char userkey[MAX_LENGTH];
     char userkey2[MAX_LENGTH];
-    sprintf(userkey, "%s:%s\n", user, key);
+    sprintf(userkey, "%s:%s", user, key);
     rewind(file);
     // Add validation for error in password
-    while (fgets(buffer, MAX_LENGTH, file))
+    while (fgets(buffer, MAX_LENGTH, file)){
+        replace_char(buffer, '\n', '\0');
         if (strcmp(buffer, userkey) == 0)
         {
             printf("Found user\n");
             return SUCCESS;
         }
+    }
     return FAIL;
 }
 
@@ -173,7 +177,10 @@ int make_group(char *user, char *group)
 {
     FILE *grp_file;
     char buffer[MAX_LENGTH];
-    char *userp, *groupp; // Printable implementations of user and group
+    char *userp = malloc((strlen(user) + 2) * sizeof(char)); // +2 para incluir el salto de línea y el terminador nulo
+    char *groupp = malloc((strlen(group) + 2) * sizeof(char)); // +2 para incluir el salto de línea y el terminador nulo
+
+    sprintf(userp, "%s\n", user);
     sprintf(userp, "%s\n", user);
     sprintf(groupp, "%s\n", group);
     sprintf(buffer, "%s.cnv", group);
@@ -195,10 +202,7 @@ int make_group(char *user, char *group)
         fclose(grp_file);
         grp_file = fopen("groups.lst", "a+");
         fputs(groupp, grp_file);
-        free(userp);
-        free(groupp);
-        free(group);
-        free(user);
+        fclose(grp_file);
         return SUCCESS;
     }
 }
@@ -218,6 +222,8 @@ int join_group(char *user, char *group)
         FILE *fp = fopen(fname, "a+");
         char *usep;
         char *userfile;
+        char *groupp;
+        sprintf(groupp, "%s\n", group);
         sprintf(userfile, "%s.grp", user);
         sprintf(usep, "%s\n", user);
         char buffer[MAX_LENGTH];
@@ -229,15 +235,12 @@ int join_group(char *user, char *group)
         }
         fputs(usep, fp);
         fclose(fp);
-        free(usep);
-        char *groupp;
-        sprintf(groupp, "%s\n", group);
+        
+        printf("%s", group);
+        printf("%s", groupp);
         fp = fopen(userfile, "a+");
         fputs(groupp, fp);
         fclose(fp);
-        free(user);
-        free(group);
-        free(groupp);
         return SUCCESS;
     }
     else
@@ -246,22 +249,34 @@ int join_group(char *user, char *group)
     }
 }
 
-int see_groups(char *user, char *group) {
+int create_socket() {
+    int new_socket;
+    if ((new_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("Socket creation failed\n");
+        exit(EXIT_FAILURE);
+    }
+    return new_socket;
+}
+
+int see_groups(char *user, char *group, int client_socket) {
     char group_file[MAX_LENGTH];
-    sprintf(group_file, "%s.usr", group);
+    sprintf(group_file, "%s.grp", user);
     FILE *fp = fopen(group_file, "r");
+    int server_socket;
+    char *req;
 
     if (fp == NULL) {
         return FAIL;
     }
 
-    printf("Members of group '%s':\n", group);
-
     char buffer[MAX_LENGTH];
     while (fgets(buffer, MAX_LENGTH, fp))
     {
-        printf("- %s", buffer);
+        printf("%s", buffer);
+        send(client_socket, XORCipher(buffer, KEY), strlen(buffer), 0);
     }
+    send(client_socket, XORCipher("finish", KEY), strlen("finish"), 0);
 
     fclose(fp);
     return SUCCESS;
@@ -349,7 +364,7 @@ void send_conversations(char *group, char *message, char *user)
  * param file: User key file
  * return: 0 for error, 1 for success
  */
-int manage_user_request(char *req, FILE *file)
+int manage_user_request(char *req, FILE *file, int client_socket)
 {
     char parts[3][MAX_LENGTH];
     char buffer[MAX_LENGTH];
@@ -395,13 +410,13 @@ int manage_user_request(char *req, FILE *file)
         return make_group(user, pass);
         break;
     case 5:
-        see_groups(user, pass);
+        see_groups(user, pass, client_socket);
         break;
     case 6:
         enter_group(user, pass);
         break;
     case 7:
-        strcpy(message, parts[3]);
+        strcpy(message, pass);
         send_message(user, pass, message);
         break;
     default:
@@ -479,7 +494,7 @@ int main(void)
                 perror("Error reading data\n");
                 close(new_socket);
             }
-            if (manage_user_request(buffer, user_file) == SUCCESS)
+            if (manage_user_request(buffer, user_file, new_socket) == SUCCESS)
             {
                 send(new_socket, XORCipher("accept", KEY), strlen("accept"), 0);
                 FD_SET(new_socket, &read_fds);
@@ -507,7 +522,7 @@ int main(void)
 
                 else
                 {
-                    if (manage_user_request(buffer, user_file) == SUCCESS)
+                    if (manage_user_request(buffer, user_file, sd) == SUCCESS)
                     {
                         send(sd, XORCipher("accept", KEY), strlen("accept"), 0);
                     }

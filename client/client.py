@@ -4,6 +4,15 @@ from tkinter import messagebox
 
 import socket
 
+def create_socket():
+    # Crea un socket TCP/IP
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # Conecta el cliente al servidor en la direccion y puerto especificados
+    server_address = ("172.18.2.2", 5000)
+    client_socket.connect(server_address)
+    return client_socket
+
 
 def send_to_server(username, data, operation):
     if not username or not data:
@@ -11,11 +20,7 @@ def send_to_server(username, data, operation):
         return
 
     # Crea un socket TCP/IP
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-    # Conecta el cliente al servidor en la direccion y puerto especificados
-    server_address = ("172.18.2.2", 5000)
-    client_socket.connect(server_address)
+    client_socket = create_socket()
 
     if operation == "Login":
         operation = 1
@@ -236,6 +241,7 @@ def create_lobby_window(
     lobby_window = tk.Tk()
     lobby_window.geometry("300x150")
     lobby_window.title(f"{user}'s Lobby")
+    client_socket = create_socket()
 
     # Crear un widget Canvas
     canvas = tk.Canvas(lobby_window)
@@ -255,25 +261,26 @@ def create_lobby_window(
     num_users = 10
     usernames = []
 
-    while (
-        num_users > 0
-    ):  # simulador de usuarios registrados, se ejecutará esta linea cuando ya se tengan los usuarios en un archivo*
-        # *(archivo que pueda leer el cliente, no los usuarios del servidor)
-        usernames.append(tk.Label(frame, text=(f"User{num_users}")))
-        num_users -= 1
+    # while (
+    #     num_users > 0
+    # ):  # simulador de usuarios registrados, se ejecutará esta linea cuando ya se tengan los usuarios en un archivo*
+    #     # *(archivo que pueda leer el cliente, no los usuarios del servidor)
+    #     usernames.append(tk.Label(frame, text=(f"User{num_users}")))
+    #     num_users -= 1
 
-    for username in usernames:
-        username.pack(pady=2)
+    # for username in usernames:
+    #     username.pack(pady=2)
 
-    existing_groups = 20  # simulador de grupos, se ejecutará esta linea cuando ya se tengan los grupos en un archivo
+    #existing_groups = 20  # simulador de grupos, se ejecutará esta linea cuando ya se tengan los grupos en un archivo
     buttons = []
-    group_num = 1
-    while (
-        existing_groups > 0
-    ):  # los grupos se muestran como botones, cuando das click a uno te abre la ventana del chatroom de ese grupo
-        buttons.append(tk.Button(frame, text=f"group {group_num} (1 nueva)"))
-        existing_groups -= 1
-        group_num += 1
+    response = ""
+    while (response != "finish"):  # los grupos se muestran como botones, cuando das click a uno te abre la ventana del chatroom de ese grupo
+        
+        response = client_socket.recv(1024)
+        response = encryption(response.decode())
+        buttons.append(tk.Button(frame, text=f"{response}"))
+        
+    client_socket.close()
 
     for button in buttons:
         groupname = button.cget("text").split("(")

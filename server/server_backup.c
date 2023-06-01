@@ -21,7 +21,7 @@
 // Max number of users
 #define MAX_USERS 30
 // Port for communications
-#define PORT 5000
+#define PORT 5001
 // Code for successful operations
 #define SUCCESS 1
 // Code for failed operations
